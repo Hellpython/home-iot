@@ -11,6 +11,7 @@ services:
       - ./data:/app/data
     tmpfs:
       - /tmp:size=64m
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,6 +37,7 @@ services:
       timeout: 5s
       retries: 5
     command: ["postgres", "-c", "shared_preload_libraries=pg_cron", "-c", "cron.database_name=postgres"]
+    restart: unless-stopped
     networks:
       - iot-network
 
@@ -204,7 +206,7 @@ services:
     container_name: iot-vaultwarden
     environment:
       - DOMAIN=https://vault.ecowarden.systems
-      - SIGNUPS_ALLOWED=false
+      - SIGNUPS_ALLOWED=true
     volumes:
       - ./vaultwarden/data:/data
     restart: unless-stopped
