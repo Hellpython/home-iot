@@ -4,7 +4,6 @@ services:
     container_name: iot-server
     ports:
       - "3001:3001"
-    # .env 파일의 모든 변수를 컨테이너 내부로 자동 주입
     env_file:
       - .env
     volumes:
@@ -25,8 +24,11 @@ services:
       context: .
       dockerfile: postgres.Dockerfile
     container_name: iot-postgres
-    env_file:
-      - .env
+    # PostgreSQL 공식 이미지가 인식하는 환경 변수 이름으로 수정
+    environment:
+      POSTGRES_USER: heechan
+      POSTGRES_PASSWORD: your_password
+      POSTGRES_DB: home_iot
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -51,6 +53,7 @@ services:
     restart: always
     command: tunnel --no-autoupdate run --credentials-file /home/nonroot/.cloudflared/5ea22a6e-e622-4d86-8618-29cd770abbda.json --url http://iot-server:3001 home-iot
     volumes:
-      - /Users/heechan/.cloudflared:/home/nonroot/.cloudflared
+      # macOS 경로(/Users/heechan)를 라즈베리파이 경로(/home/heechan)로 수정
+      - /home/heechan/.cloudflared:/home/nonroot/.cloudflared
     depends_on:
       - home-iot-server
