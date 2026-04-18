@@ -55,3 +55,22 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 postgres_data/
+influxdb/data/
+grafana/data/
+jellyfin/config/
+jellyfin/cache/
+nextcloud/config/
+nextcloud/data/
+pihole/config/
+pihole/dnsmasq/
+wireguard/
+homeassistant/config/
+portainer/data/
+uptime-kuma/data/
+vaultwarden/data/
+gitea/data/
+paperless/data/
+paperless/media/
+paperless/export/
+paperless/consume/
+code-server/config/

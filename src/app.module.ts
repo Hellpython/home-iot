@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { DevicesModule } from './devices/devices.module';
 import { AutomationModule } from './automation/automation.module';
 import { NotificationModule } from './notification/notification.module';
+import { InfluxdbModule } from './influxdb/influxdb.module';
 import { DeviceOrmEntity } from './devices/infrastructure/persistence/device.orm-entity';
 import { ActivityLog } from './devices/entities/activity-log.entity';
 
@@ -31,9 +32,10 @@ import { ActivityLog } from './devices/entities/activity-log.entity';
     }),
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({ rootPath: join(__dirname, '..', 'public') }),
+    InfluxdbModule,
     DevicesModule,
     AutomationModule,
-    NotificationModule, // 알림 모듈 추가
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

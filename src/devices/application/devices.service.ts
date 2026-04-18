@@ -8,6 +8,7 @@ import { DEVICE_REPOSITORY_PORT } from './ports/device-repository.port';
 import type { DeviceRepositoryPort } from './ports/device-repository.port';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { InfluxdbService } from '../../influxdb/influxdb.service';
 
 @Injectable()
 export class DevicesService {
@@ -21,6 +22,7 @@ export class DevicesService {
     @Inject('IOT_MQTT_CLIENT')
     private readonly mqttClient: ClientProxy,
     private readonly commandBus: CommandBus,
+    private readonly influxdb: InfluxdbService,
   ) {}
 
   async findAll(): Promise<Device[]> {
@@ -39,6 +41,7 @@ export class DevicesService {
     device.value = value;
     const updated = await this.deviceRepository.save(device);
     this.mqttClient.emit(`devices/${id}/value`, { value });
+    this.influxdb.writeSensorValue(device.name, device.type, value, device.unit ?? '');
     return updated;
   }
 

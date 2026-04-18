@@ -1,0 +1,47 @@
+tunnel: home-iot
+credentials-file: /home/nonroot/.cloudflared/5ea22a6e-e622-4d86-8618-29cd770abbda.json
+
+ingress:
+  - hostname: ssh.ecowarden.systems
+    service: ssh://host.docker.internal:22
+
+  - hostname: home-api.ecowarden.systems
+    service: http://iot-server:3001
+
+  - hostname: grafana.ecowarden.systems
+    service: http://iot-grafana:3000
+
+  - hostname: ha.ecowarden.systems
+    service: http://iot-homeassistant:8123
+
+  - hostname: cloud.ecowarden.systems
+    service: https://iot-nextcloud:443
+    originRequest:
+      noTLSVerify: true
+
+  - hostname: video.ecowarden.systems
+    service: http://iot-jellyfin:8096
+
+  - hostname: vpn.ecowarden.systems
+    service: http://iot-wireguard:51821
+
+  - hostname: vault.ecowarden.systems
+    service: http://iot-vaultwarden:80
+
+  - hostname: git.ecowarden.systems
+    service: http://iot-gitea:3000
+
+  - hostname: docs.ecowarden.systems
+    service: http://iot-paperless:8000
+
+  - hostname: code.ecowarden.systems
+    service: http://iot-code-server:8443
+
+  - hostname: monitor.ecowarden.systems
+    service: http://iot-uptime-kuma:3001
+
+  - hostname: docker.ecowarden.systems
+    service: http://iot-portainer:9000
+
+  # 매칭 안 된 요청은 404
+  - service: http_status:404

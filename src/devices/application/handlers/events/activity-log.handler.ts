@@ -20,5 +20,13 @@ export class ActivityLogHandler implements IEventHandler<DeviceStatusChangedEven
       deviceName: name,
       action: actionStr,
     });
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    await this.logRepository
+      .createQueryBuilder()
+      .delete()
+      .where('timestamp < :cutoff', { cutoff })
+      .execute();
   }
 }

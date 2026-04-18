@@ -9,51 +9,282 @@ services:
     volumes:
       - ./public:/app/public
       - ./data:/app/data
+    tmpfs:
+      - /tmp:size=64m
     depends_on:
       postgres:
         condition: service_healthy
       mosquitto:
         condition: service_started
     networks:
-      default:
-        aliases:
-          - iot-app
+      - iot-network
 
   postgres:
     build:
       context: .
       dockerfile: postgres.Dockerfile
     container_name: iot-postgres
-    # PostgreSQL 공식 이미지가 인식하는 환경 변수 이름으로 수정
     environment:
-      POSTGRES_USER: heechan
-      POSTGRES_PASSWORD: your_password
-      POSTGRES_DB: home_iot
+      POSTGRES_USER: ${DB_USERNAME:-heechan}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-your_password}
+      POSTGRES_DB: ${DB_NAME:-home_iot}
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U heechan -d home_iot"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-heechan} -d ${DB_NAME:-home_iot}"]
       interval: 5s
       timeout: 5s
       retries: 5
     command: ["postgres", "-c", "shared_preload_libraries=pg_cron", "-c", "cron.database_name=postgres"]
+    networks:
+      - iot-network
 
   mosquitto:
     image: eclipse-mosquitto:latest
     container_name: iot-mosquitto
     ports:
       - "1883:1883"
+      - "9001:9001"
     volumes:
       - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
     restart: always
+    networks:
+      - iot-network
+
+  # 1. Jellyfin (나만의 넷플릭스)
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: iot-jellyfin
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/cache:/cache
+      - /home/heechan/media:/media
+    restart: unless-stopped
+    ports:
+      - "8096:8096"
+    networks:
+      - iot-network
+
+  # 2. Nextcloud (개인 클라우드)
+  nextcloud:
+    image: linuxserver/nextcloud:latest
+    container_name: iot-nextcloud
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Seoul
+      - NEXTCLOUD_TRUSTED_DOMAINS=cloud.ecowarden.systems
+    volumes:
+      - ./nextcloud/config:/config
+      - ./nextcloud/data:/data
+    restart: unless-stopped
+    ports:
+      - "444:443"
+    networks:
+      - iot-network
+
+  # 3. Pi-hole (광고 차단)
+  pihole:
+    image: pihole/pihole:latest
+    container_name: iot-pihole
+    environment:
+      - TZ=Asia/Seoul
+      - WEBPASSWORD=${PIHOLE_PASSWORD:-admin_password}
+    volumes:
+      - ./pihole/config:/etc/pihole
+      - ./pihole/dnsmasq:/etc/dnsmasq.d
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8080:80"
+    networks:
+      - iot-network
+
+  # 4. InfluxDB (시계열 데이터베이스 - 센서 데이터용)
+  influxdb:
+    image: influxdb:2.7
+    container_name: iot-influxdb
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=home-iot
+      - DOCKER_INFLUXDB_INIT_BUCKET=sensors
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb2
+    restart: unless-stopped
+    networks:
+      - iot-network
+
+  # 5. Grafana (데이터 시각화 대시보드)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: iot-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SERVER_ROOT_URL=https://grafana.ecowarden.systems
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - influxdb
+    networks:
+      - iot-network
+
+  # 6. Home Assistant (스마트홈 통합 플랫폼)
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: iot-homeassistant
+    volumes:
+      - ./homeassistant/config:/config
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    # 장치 자동 검색을 위해 host 모드 사용 권장하나, 터널 연결을 위해 포트 명시
+    ports:
+      - "8123:8123"
+    networks:
+      - iot-network
+
+  # 7. WireGuard (VPN + 관리 UI)
+  wireguard:
+    image: ghcr.io/wg-easy/wg-easy
+    container_name: iot-wireguard
+    environment:
+      - WG_HOST=${MY_PUBLIC_IP:-your_public_ip}
+      - PASSWORD=${WG_ADMIN_PASSWORD:-admin_password}
+    volumes:
+      - ./wireguard:/etc/wireguard
+    ports:
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+    networks:
+      - iot-network
+
+  # 8. Portainer (Docker 웹 UI)
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: iot-portainer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./portainer/data:/data
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    networks:
+      - iot-network
+
+  # 9. Uptime Kuma (서비스 모니터링)
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: iot-uptime-kuma
+    volumes:
+      - ./uptime-kuma/data:/app/data
+    restart: unless-stopped
+    ports:
+      - "3002:3001"
+    networks:
+      - iot-network
+
+  # 10. Vaultwarden (비밀번호 관리자)
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: iot-vaultwarden
+    environment:
+      - DOMAIN=https://vault.ecowarden.systems
+      - SIGNUPS_ALLOWED=false
+    volumes:
+      - ./vaultwarden/data:/data
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    networks:
+      - iot-network
+
+  # 11. Gitea (나만의 GitHub)
+  gitea:
+    image: gitea/gitea:latest
+    container_name: iot-gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__server__ROOT_URL=https://git.ecowarden.systems
+    volumes:
+      - ./gitea/data:/data
+    restart: unless-stopped
+    ports:
+      - "3003:3000"
+      - "2222:22"
+    networks:
+      - iot-network
+
+  # 12. Paperless-ngx (문서 관리)
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: iot-paperless
+    environment:
+      - PAPERLESS_URL=https://docs.ecowarden.systems
+      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY}
+      - PAPERLESS_TIME_ZONE=Asia/Seoul
+      - PAPERLESS_OCR_LANGUAGE=kor+eng
+    volumes:
+      - ./paperless/data:/usr/src/paperless/data
+      - ./paperless/media:/usr/src/paperless/media
+      - ./paperless/export:/usr/src/paperless/export
+      - ./paperless/consume:/usr/src/paperless/consume
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - iot-network
+
+  # 13. Code Server (브라우저 VS Code)
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: iot-code-server
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Seoul
+      - PASSWORD=${CODE_SERVER_PASSWORD}
+      - SUDO_PASSWORD=${CODE_SERVER_SUDO_PASSWORD}
+    volumes:
+      - ./code-server/config:/config
+      - /home/heechan:/home/heechan
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    networks:
+      - iot-network
 
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: iot-tunnel
     restart: always
-    command: tunnel --no-autoupdate run --credentials-file /home/nonroot/.cloudflared/5ea22a6e-e622-4d86-8618-29cd770abbda.json --url http://iot-server:3001 home-iot
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
     volumes:
-      # macOS 경로(/Users/heechan)를 라즈베리파이 경로(/home/heechan)로 수정
       - /home/heechan/.cloudflared:/home/nonroot/.cloudflared
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - home-iot-server
+    networks:
+      - iot-network
+
+networks:
+  iot-network:
+    name: iot-network
+    driver: bridge
