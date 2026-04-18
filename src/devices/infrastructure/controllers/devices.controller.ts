@@ -27,6 +27,14 @@ export class DevicesController {
     return this.devicesService.updateStatus(id, updateDeviceStatusDto.status);
   }
 
+  @Post(':id/value')
+  updateValue(
+    @Param('id') id: string,
+    @Body('value') value: number,
+  ) {
+    return this.devicesService.updateValue(id, value);
+  }
+
   @Post('seed')
   seed() {
     return this.devicesService.createSeedData();
