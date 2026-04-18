@@ -4,7 +4,8 @@ import { CommandBus } from '@nestjs/cqrs';
 import { Device, DeviceStatus } from '../domain/device';
 import { ActivityLog } from '../entities/activity-log.entity';
 import { UpdateDeviceStatusCommand } from './commands/update-device-status.command';
-import { DEVICE_REPOSITORY_PORT, DeviceRepositoryPort } from './ports/device-repository.port';
+import { DEVICE_REPOSITORY_PORT } from './ports/device-repository.port';
+import type { DeviceRepositoryPort } from './ports/device-repository.port';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -51,15 +52,18 @@ export class DevicesService {
   async createSeedData() {
     const count = await this.deviceRepository.count();
     if (count === 0) {
-      await this.deviceRepository.save({
-        name: '거실 전등', status: DeviceStatus.OFF, type: 'light'
-      });
-      await this.deviceRepository.save({
-        name: '실내 온도', type: 'sensor', value: 24.5, unit: '°C'
-      });
-      await this.deviceRepository.save({
-        name: '스마트 에어컨', status: DeviceStatus.OFF, type: 'ac'
-      });
+      // 1. 거실 전등 생성
+      const light = new Device('', '거실 전등', DeviceStatus.OFF, 'light');
+      await this.deviceRepository.save(light);
+
+      // 2. 실내 온도 센서 생성
+      const sensor = new Device('', '실내 온도', DeviceStatus.ON, 'sensor', 24.5, '°C');
+      await this.deviceRepository.save(sensor);
+
+      // 3. 스마트 에어컨 생성
+      const ac = new Device('', '스마트 에어컨', DeviceStatus.OFF, 'ac');
+      await this.deviceRepository.save(ac);
+
       this.logger.log('초기 더미 장치 데이터를 생성했습니다.');
     }
   }
