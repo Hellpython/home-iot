@@ -25,6 +25,7 @@
 - **Grafana**: 센서 데이터 시각화
 - **Home Assistant**: 스마트홈 통합
 - **WireGuard**: 안전한 VPN 접속
+- **
 
 
 
