@@ -20,6 +20,13 @@
 </p>
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 설치된 서비스 목록
+- **IoT Server**: NestJS 기반 장치 제어
+- **Grafana**: 센서 데이터 시각화
+- **Home Assistant**: 스마트홈 통합
+- **WireGuard**: 안전한 VPN 접속
+
+
 
 ## Description
 
