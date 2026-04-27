@@ -252,7 +252,24 @@ services:
     networks:
       - iot-network
 
-  # 13. Code Server (브라우저 VS Code)
+  # 13. Zigbee2MQTT (Zigbee 장치 게이트웨이)
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:latest
+    container_name: iot-zigbee2mqtt
+    restart: unless-stopped
+    volumes:
+      - ./zigbee2mqtt/data:/app/data
+      - /run/udev:/run/udev:ro
+    ports:
+      - "8081:8081"
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    depends_on:
+      - mosquitto
+    networks:
+      - iot-network
+
+  # 14. Code Server (브라우저 VS Code)
   code-server:
     image: lscr.io/linuxserver/code-server:latest
     container_name: iot-code-server

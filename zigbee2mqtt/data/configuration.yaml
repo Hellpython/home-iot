@@ -1,0 +1,20 @@
+# Home IoT Server - Zigbee2MQTT Configuration
+homeassistant: true # Home Assistant 자동 연동 활성화
+permit_join: true   # 새로운 장치 페어링 허용
+
+mqtt:
+  base_topic: zigbee2mqtt
+  server: mqtt://mosquitto:1883
+  # user: your_user     # 인증이 필요하면 나중에 추가
+  # password: your_password
+
+serial:
+  port: /dev/ttyUSB0 # 라즈베리파이 확인 결과: /dev/ttyUSB0
+  adapter: auto      # 동글 칩셋 자동 감지
+
+frontend:
+  port: 8081         # 웹 UI 포트
+  host: 0.0.0.0
+
+advanced:
+  network_key: GENERATE # 보안을 위해 네트워크 키 자동 생성

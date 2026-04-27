@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { DevicesService } from '../../application/devices.service';
 import { UpdateDeviceStatusDto } from './dto/update-device-status.dto';
+import { SensorDataDto } from './dto/sensor-data.dto';
 import { ApiKeyGuard } from './api-key.guard';
 
 @Controller('devices')
@@ -33,6 +34,15 @@ export class DevicesController {
     @Body('value') value: number,
   ) {
     return this.devicesService.updateValue(id, value);
+  }
+
+  @Post(':id/sensor-data')
+  updateSensorData(
+    @Param('id') id: string,
+    @Body() sensorDataDto: SensorDataDto,
+  ) {
+    // 온도 값을 우선적으로 업데이트합니다.
+    return this.devicesService.updateValue(id, sensorDataDto.temperature);
   }
 
   @Post('seed')
