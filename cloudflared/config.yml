@@ -1,6 +1,5 @@
 tunnel: home-iot
-credentials-file: /home/nonroot/.cloudflared/5ea22a6e-e622-4d86-8618-29cd770abbda.json
-
+credentials-file: /home/nonroot/.cloudflared/82215502-35f2-4f4e-8d08-902fc39d28ba.json
 ingress:
   - hostname: ssh.ecowarden.systems
     service: ssh://host.docker.internal:22
@@ -42,6 +41,9 @@ ingress:
 
   - hostname: docker.ecowarden.systems
     service: http://iot-portainer:9000
+
+  - hostname: z2m.ecowarden.systems
+    service: http://iot-zigbee2mqtt:8081
 
   # 매칭 안 된 요청은 404
   - service: http_status:404

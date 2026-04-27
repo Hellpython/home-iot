@@ -10,7 +10,6 @@ mqtt:
 
 serial:
   port: /dev/ttyUSB0 # 라즈베리파이 확인 결과: /dev/ttyUSB0
-  adapter: auto      # 동글 칩셋 자동 감지
 
 frontend:
   port: 8081         # 웹 UI 포트
